@@ -2,7 +2,7 @@ use ethers::{
     providers::{Middleware, Provider, StreamExt, Ws},
     types::{Filter, Log, Transaction, U256, U64},
 };
-use log::info;
+use log::{error, info};
 
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
@@ -28,15 +28,13 @@ pub async fn stream_pending_transactions(provider: Arc<Provider<Ws>>, event_send
     while let Some(result) = stream.next().await {
         match result {
             Ok(tx) => match event_sender.send(Event::PendingTx(tx)) {
-                Ok(_) => {
-                    info!("Sent pending tx");
-                }
+                Ok(_) => {}
                 Err(_) => {
-                    info!("Failed to send pending tx");
+                    error!("Failed to send pending tx");
                 }
             },
             Err(_) => {
-                info!("Failed to get pending tx");
+                error!("Failed to get pending tx");
             }
         };
     }
