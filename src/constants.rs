@@ -17,6 +17,7 @@ pub fn func_selectors() -> HashMap<&'static str, &'static str> {
 
     // Other Common Functions
     function_selectors.insert("8da5cb5b", "owner()");
+    function_selectors.insert("2e17de78", "unstake(uint256)");
 
     function_selectors
 }

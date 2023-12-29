@@ -1,8 +1,4 @@
 use anyhow::Result;
-use ethers::{
-    providers::{Middleware, StreamExt},
-    types::{Action, TraceType, Transaction, U256},
-};
 use log::info;
 use mev::client::Client;
 use mev::handler::event_handler;

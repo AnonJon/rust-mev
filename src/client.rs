@@ -1,8 +1,5 @@
 use anyhow::Result;
-use ethers::{
-    core::types::{Address, H160, U256},
-    providers::{Provider, Ws},
-};
+use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
 
 pub struct Client {

@@ -1,8 +1,8 @@
 use ethers::{
     providers::{Middleware, Provider, StreamExt, Ws},
-    types::{Filter, Log, Transaction, U256, U64},
+    types::{Log, Transaction, U256, U64},
 };
-use log::{error, info};
+use log::error;
 
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
@@ -33,8 +33,8 @@ pub async fn stream_pending_transactions(provider: Arc<Provider<Ws>>, event_send
                     error!("Failed to send pending tx");
                 }
             },
-            Err(_) => {
-                error!("Failed to get pending tx");
+            Err(e) => {
+                error!("Failed to get pending tx | {:?}", e);
             }
         };
     }
