@@ -16,6 +16,8 @@ async fn main() -> Result<()> {
 
     let mut set = JoinSet::new();
 
+    println!("Starting MEV bot...");
+
     set.spawn(stream_pending_transactions(
         web3.client.clone(),
         event_sender.clone(),

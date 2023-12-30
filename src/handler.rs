@@ -4,8 +4,8 @@ use crate::{
 };
 use ethers::{
     core::abi::AbiDecode,
-    providers::{Middleware, Provider, Ws},
-    types::{Action, Call, TraceType, Transaction, U256},
+    providers::{Provider, Ws},
+    types::{Transaction, H160, U256},
 };
 use log::{error, info};
 use std::sync::Arc;
@@ -20,36 +20,17 @@ pub async fn event_handler(provider: Arc<Provider<Ws>>, event_sender: Sender<Eve
         match event_receiver.recv().await {
             Ok(event) => match event {
                 Event::PendingTx(tx) => {
-                    // info!("Got pending tx | hash: {:?}", tx.hash);
-                    match provider.trace_call(&tx, vec![TraceType::Trace], None).await {
-                        Ok(traces) => {
-                            if let Some(traces) = traces.trace {
-                                for trace in traces {
-                                    if let Action::Call(call) = trace.action {
-                                        if call.input.len() >= 4 {
-                                            let func_selector_bytes = &call.input[0..4];
-                                            let func_selector_hex =
-                                                hex::encode(func_selector_bytes);
-                                            match func_selector_hex.as_str() {
-                                                UNSTAKE => {
-                                                    handle_unstake(tx.clone(), call.clone(), false);
-                                                }
-                                                TRANSFER_FROM => {
-                                                    handle_transfer(
-                                                        tx.clone(),
-                                                        call.clone(),
-                                                        false,
-                                                    );
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                    }
-                                }
+                    if tx.input.len() >= 4 {
+                        let func_selector_bytes = &tx.input[0..4];
+                        let func_selector_hex = hex::encode(func_selector_bytes);
+                        match func_selector_hex.as_str() {
+                            UNSTAKE => {
+                                handle_unstake(tx.clone(), false);
                             }
-                        }
-                        Err(err) => {
-                            error!("Failed to trace pending tx | {:?}", err);
+                            TRANSFER_FROM => {
+                                handle_transfer(tx.clone(), false);
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -62,25 +43,30 @@ pub async fn event_handler(provider: Arc<Provider<Ws>>, event_sender: Sender<Eve
     }
 }
 
-fn handle_unstake(tx: Transaction, call: Call, paused: bool) {
-    if paused {
+fn handle_unstake(tx: Transaction, paused: bool) {
+    let staking_contract: &str = "0xBc10f2E862ED4502144c7d632a3459F49DFCDB5e";
+
+    if paused || tx.to.unwrap() != staking_contract.parse::<H160>().unwrap() {
         return;
     }
+
     info!("Found pending unstake tx | hash: {:?}", tx.hash);
-    let decoded: UnstakeCall = UnstakeCall::decode(&call.input).unwrap();
+    let decoded: UnstakeCall = UnstakeCall::decode(&tx.input).unwrap();
     let amount: U256 = decoded.amount;
     println!("Unstaking {:?}", amount);
-    // let amount = decoded.amount;
 }
 
-fn handle_transfer(tx: Transaction, call: Call, paused: bool) {
+fn handle_transfer(tx: Transaction, paused: bool) {
     if paused {
         return;
     }
     info!("Found pending transfer tx | hash: {:?}", tx.hash);
-    let decoded: TransferFromCall = TransferFromCall::decode(&call.input).unwrap();
+    let decoded: TransferFromCall = TransferFromCall::decode(&tx.input).unwrap();
     println!(
         "Transferring | Amount: {:?}  From: {:?} To: {:?} Contract: {:?}",
-        decoded.wad, decoded.src, decoded.dst, call.from
+        decoded.wad,
+        decoded.src,
+        decoded.dst,
+        tx.to.expect("No contract address found")
     );
 }

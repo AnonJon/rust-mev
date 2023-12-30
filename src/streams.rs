@@ -2,7 +2,7 @@ use ethers::{
     providers::{Middleware, Provider, StreamExt, Ws},
     types::{Log, Transaction, U256, U64},
 };
-use log::error;
+use log::{error, warn};
 
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
@@ -34,7 +34,11 @@ pub async fn stream_pending_transactions(provider: Arc<Provider<Ws>>, event_send
                 }
             },
             Err(e) => {
-                error!("Failed to get pending tx | {:?}", e);
+                let error_string = e.to_string();
+                if error_string.contains("not found") {
+                } else {
+                    error!("Failed to get pending tx | {:?}", e);
+                }
             }
         };
     }
