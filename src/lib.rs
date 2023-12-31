@@ -1,3 +1,4 @@
+pub mod bundler;
 pub mod client;
 pub mod constants;
 pub mod contract_interfaces;
