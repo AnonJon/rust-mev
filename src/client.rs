@@ -1,15 +1,19 @@
+use crate::constants::Config;
 use anyhow::Result;
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
 
+use crate::bundler::Bundler;
+
 pub struct Client {
-    pub client: Arc<Provider<Ws>>,
+    pub provider: Arc<Provider<Ws>>,
+    pub bundler: Bundler,
 }
 
 impl Client {
-    pub async fn new(rpc_url: String) -> Result<Self> {
-        let provider = Provider::<Ws>::connect(rpc_url).await?;
-        let client = Arc::new(provider);
-        Ok(Self { client })
+    pub async fn new(config: Config) -> Result<Self> {
+        let provider = Arc::new(Provider::<Ws>::connect(&config.wss_url).await?);
+        let bundler = Bundler::new(&config);
+        Ok(Self { provider, bundler })
     }
 }

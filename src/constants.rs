@@ -7,7 +7,7 @@ use ethers::{
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
-pub struct Env {
+pub struct Config {
     pub https_url: String,
     pub wss_url: String,
     pub chain_id: U64,
@@ -15,9 +15,9 @@ pub struct Env {
     pub signing_key: String,
 }
 
-impl Env {
+impl Config {
     pub fn new() -> Self {
-        Env {
+        Config {
             https_url: get_env("HTTPS_URL"),
             wss_url: get_env("WSS_URL"),
             chain_id: U64::from_str(&get_env("CHAIN_ID")).unwrap(),
