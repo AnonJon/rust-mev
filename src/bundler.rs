@@ -122,17 +122,20 @@ impl Bundler {
         to: Option<NameOrAddress>,
         data: Bytes,
         gas: Option<U256>,
-        nonce: Option<U256>,
         value: Option<U256>,
         max_priority_fee_per_gas: Option<U256>,
         max_fee_per_gas: Option<U256>,
     ) -> Result<Eip1559TransactionRequest> {
+        let nonce = self
+            .provider
+            .get_transaction_count(self.sender.address(), None)
+            .await?;
         let tx = Eip1559TransactionRequest {
             to,
             from: Some(self.sender.address()),
             data: Some(data),
             gas,
-            nonce,
+            nonce: Some(nonce),
             value,
             access_list: AccessList::default(),
             chain_id: Some(self.config.chain_id),

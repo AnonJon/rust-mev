@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         client.provider.clone(),
         event_sender.clone(),
     ));
-    set.spawn(event_handler(client.provider.clone(), event_sender.clone()));
+    set.spawn(event_handler(client, event_sender.clone()));
 
     // will run forever
     while let Some(res) = set.join_next().await {

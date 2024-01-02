@@ -1818,6 +1818,7 @@ name = "mev"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "chrono",
  "colored 2.1.0",
  "ethers",

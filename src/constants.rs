@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use ethers::{
-    prelude::Lazy,
-    types::{Address, H160, U256, U64},
-};
+use ethers::types::U64;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -49,8 +46,17 @@ pub fn func_selectors() -> HashMap<&'static str, &'static str> {
     function_selectors
 }
 
-pub fn get_env(key: &str) -> String {
-    std::env::var(key).unwrap_or_else(|_| panic!("Environment variable '{}' not found", key))
+fn get_env(key: &str) -> String {
+    match std::env::var(key) {
+        Ok(val) => {
+            if val.trim().is_empty() {
+                panic!("Environment variable '{}' is set but empty", key)
+            } else {
+                val
+            }
+        }
+        Err(_) => panic!("Environment variable '{}' not found", key),
+    }
 }
 
 pub static BUILDER_URLS: &[&str] = &[

@@ -1,17 +1,19 @@
+use crate::bundler::Bundler;
+use crate::client::Client;
 use crate::{
     contract_interfaces::{TransferFromCall, UnstakeCall},
     streams::Event,
 };
+use anyhow::Result;
 use ethers::{
     core::abi::AbiDecode,
-    providers::{Provider, Ws},
-    types::{Transaction, H160, U256},
+    providers::Middleware,
+    types::{Bytes, Transaction, H160, H256, U256, U64},
 };
 use log::{error, info};
-use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 
-pub async fn event_handler(provider: Arc<Provider<Ws>>, event_sender: Sender<Event>) {
+pub async fn event_handler(client: Client, event_sender: Sender<Event>) {
     let mut event_receiver = event_sender.subscribe();
 
     const UNSTAKE: &str = "2e17de78";
@@ -25,10 +27,26 @@ pub async fn event_handler(provider: Arc<Provider<Ws>>, event_sender: Sender<Eve
                         let func_selector_hex = hex::encode(func_selector_bytes);
                         match func_selector_hex.as_str() {
                             UNSTAKE => {
-                                handle_unstake(tx.clone(), false);
+                                let block_number =
+                                    match client.bundler.provider.get_block_number().await {
+                                        Ok(block_number) => block_number,
+                                        Err(_) => {
+                                            error!("Failed to get block number");
+                                            continue;
+                                        }
+                                    };
+                                handle_unstake(tx.clone(), block_number, false);
                             }
                             TRANSFER_FROM => {
-                                handle_transfer(tx.clone(), false);
+                                let block_number =
+                                    match client.bundler.provider.get_block_number().await {
+                                        Ok(block_number) => block_number,
+                                        Err(_) => {
+                                            error!("Failed to get block number");
+                                            continue;
+                                        }
+                                    };
+                                handle_transfer(tx.clone(), block_number, false);
                             }
                             _ => {}
                         }
@@ -43,23 +61,26 @@ pub async fn event_handler(provider: Arc<Provider<Ws>>, event_sender: Sender<Eve
     }
 }
 
-fn handle_unstake(tx: Transaction, paused: bool) {
+fn handle_unstake(tx: Transaction, _block_number: U64, paused: bool) {
     let staking_contract: &str = "0xBc10f2E862ED4502144c7d632a3459F49DFCDB5e";
 
     if paused || tx.to.unwrap() != staking_contract.parse::<H160>().unwrap() {
         return;
     }
-
-    info!("Found pending unstake tx | hash: {:?}", tx.hash);
     let decoded: UnstakeCall = UnstakeCall::decode(&tx.input).unwrap();
     let amount: U256 = decoded.amount;
-    println!("Unstaking {:?}", amount);
+    info!(
+        "Found pending unstake tx | hash: {:?} Amount: {:?}",
+        tx.hash, amount
+    );
+    // bundle_transactions(bundler, block_num)
 }
 
-fn handle_transfer(tx: Transaction, paused: bool) {
+fn handle_transfer(tx: Transaction, block_number: U64, paused: bool) {
     if paused {
         return;
     }
+    println!("block number: {:?}", block_number);
     info!("Found pending transfer tx | hash: {:?}", tx.hash);
     let decoded: TransferFromCall = TransferFromCall::decode(&tx.input).unwrap();
     println!(
@@ -69,4 +90,23 @@ fn handle_transfer(tx: Transaction, paused: bool) {
         decoded.dst,
         tx.to.expect("No contract address found")
     );
+}
+
+async fn _bundle_transactions(bundler: Bundler, block_num: U64) -> Result<H256> {
+    // let calldata = self.bot.encode("recoverToken", (token_address,))?;
+    let tx = bundler
+        .create_tx(
+            None,
+            Bytes(bytes::Bytes::new()),
+            Some(U256::from(30000)),
+            None,
+            None,
+            None,
+        )
+        .await?;
+    let signed_tx = bundler.sign_tx(tx).await?;
+    let bundle = bundler.to_bundle(vec![signed_tx], block_num);
+    let bundle_hash = bundler.send_bundle(bundle).await?;
+
+    Ok(bundle_hash)
 }
