@@ -144,10 +144,4 @@ impl Bundler {
         };
         Ok(tx)
     }
-
-    pub async fn send_tx(&self, tx: Eip1559TransactionRequest) -> Result<TxHash> {
-        let pending_tx = self.provider.send_transaction(tx, None).await?;
-        let receipt = pending_tx.await?.ok_or_else(|| anyhow!("Tx dropped"))?;
-        Ok(receipt.transaction_hash)
-    }
 }
